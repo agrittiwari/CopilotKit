@@ -23,6 +23,11 @@ export type {
   CreateSuggestionsOptions,
   CreateSuggestionsResult,
 } from "./create-suggestions.svelte";
+export { configureSuggestions } from "./configure-suggestions.svelte";
+export type {
+  ConfigureSuggestionsInput,
+  StaticConfigureSuggestionsInput,
+} from "./configure-suggestions.svelte";
 export { createInterrupt } from "./create-interrupt.svelte";
 export type {
   CreateInterruptConfig,
