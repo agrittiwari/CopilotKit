@@ -10,6 +10,7 @@ export type {
   JsonSerializable,
 } from "./connect-agent-context.svelte";
 export { registerFrontendTool } from "./register-frontend-tool.svelte";
+export { registerComponent } from "./register-component.svelte";
 export { registerRenderToolCall } from "./register-render-tool-call.svelte";
 export type {
   RenderToolProps,
