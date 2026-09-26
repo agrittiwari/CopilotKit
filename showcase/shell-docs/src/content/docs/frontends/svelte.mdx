@@ -91,12 +91,14 @@ chat uses the runtime's `default` agent.
 | Popup and sidebar chat | Supported | `CopilotPopup` and `CopilotSidebar` keep the chat mounted while closed, so generated thread state persists across open/close. Pass an explicit `threadId` to share state across surfaces. |
 | Frontend tools | Supported | Register with `registerFrontendTool`; registrations clean up with their component. |
 | Agent context | Supported | Connect reactive application data with `connectAgentContext`. |
-| Suggestions | Observation only | `createSuggestions` observes suggestions already present in core; Svelte does not yet register suggestion-generation configuration. |
+| Suggestions | Supported | Register generation with `configureSuggestions` (static or dynamic configs, reactive updates, cleanup on destroy); observe the result with `createSuggestions`. |
 | Threads | Supported headless API | `createThreads` lists pages, fetches more, and renames/archives/unarchives/deletes threads over the core runtime transport, with reactive `agentId`/`enabled`/`limit`/`includeArchived` inputs and store cleanup on unmount. A prebuilt threads drawer is not included. |
 | Interrupts | Headless | Observe and resolve AG-UI interrupts with `createInterrupt`. |
 | Attachments | Supported | `createAttachments` validates/uploads files (drag-drop, picker, scoped paste) and `CopilotChat` wires it into the composer with `attachments={{ enabled: true }}`. See the attachments example below. |
-| Tool-call rendering | Supported in prebuilt chat | Renderers from `registerRenderToolCall` (including the `"*"` wildcard fallback) mount inside `CopilotChat`; a `toolCall` slot override still wins when provided. Unmatched calls fall back to generic status. |
+| Tool-call rendering | Supported in prebuilt chat | Renderers from `registerRenderToolCall` (including the `"*"` wildcard fallback) mount inside `CopilotChat`; a `toolCall` slot override still wins when provided. Unmatched calls fall back to generic status. Use `registerComponent` to register a tool and its renderer in one call. |
 | Human approval | Supported with custom UI | `registerHumanInTheLoop` mounts its renderer in the prebuilt chat and matches concurrent calls by tool-call ID. The provider-level `humanInTheLoop` prop is unsupported and throws; use the registration instead. |
+| Custom message renderers | Supported in prebuilt chat | Pass `renderCustomMessages` to the provider; matching `before`/`after` renderers mount around every message with run, message-index, and state-snapshot context. Unmatched messages keep their generic rendering. |
+| Activity message renderers | Supported in prebuilt chat | Pass `renderActivityMessages` to the provider; renderers match by `activityType` (plus a `"*"` wildcard) with optional `agentId` scoping and schema-validated content. Unmatched activity falls back to a generic label. |
 | A2UI and Open Generative UI | Not yet supported | Built-in catalogs, renderers, and sandbox helpers are planned. |
 | CoAgent/LangGraph state renderers | Not yet supported | Use the lower-level agent binding for state today. |
 | Memories and learning APIs | Not yet supported | No Svelte-specific bindings are included in this release. |
@@ -197,6 +199,87 @@ approval UI, use `registerHumanInTheLoop` instead: its `render` receives
 `respond` while `status === "executing"` — render a snippet with an approve
 button that calls `respond(result)` to resolve that tool call ID.
 
+## Register a component in one call
+
+`registerComponent` composes `registerFrontendTool` and
+`registerRenderToolCall`: it registers a model-facing tool (so the agent
+invokes it to display UI) and paints matching calls with your render function,
+which receives the tool parameters directly. Both registrations clean up with
+their component.
+
+```svelte
+<script lang="ts">
+  import { registerComponent } from "@copilotkit/svelte";
+  import { z } from "zod";
+
+  registerComponent({
+    name: "showWeatherCard",
+    description: "Show a weather card for a city",
+    parameters: z.object({ city: z.string() }),
+    render: ({ city }) => `${city} weather card`,
+  });
+</script>
+```
+
+## Configure suggestions
+
+`configureSuggestions` registers suggestion generation with the core (static or
+dynamic configs, mirroring React's `useConfigureSuggestions`) and unregisters
+when the component is destroyed. Pass a getter thunk for reactive updates.
+`createSuggestions` remains the observation API wired into `CopilotChat`.
+
+```svelte
+<script lang="ts">
+  import { configureSuggestions } from "@copilotkit/svelte";
+
+  configureSuggestions({
+    suggestions: [{ title: "Plan a trip", message: "Plan a trip for me" }],
+  });
+
+  // Dynamic alternative:
+  // configureSuggestions({ instructions: "Suggest helpful follow-ups" });
+</script>
+```
+
+`null`, `undefined`, or `available: "disabled"` registers nothing. An explicit
+`consumerAgentId` scopes the config; otherwise the enclosing chat agent (or the
+default agent) is used.
+
+## Render custom and activity messages
+
+Pass renderer lists to the provider; they mount inside `CopilotChat` with the
+same matching semantics as React V2. Custom renderers wrap every message at
+`before`/`after` positions and receive run, message-index, and state-snapshot
+context. Activity renderers match by `activityType` (with `"*"` wildcard and
+optional `agentId` scoping) and receive schema-validated `content`.
+
+```svelte
+<script lang="ts">
+  import { CopilotKitProvider } from "@copilotkit/svelte";
+  import { z } from "zod";
+
+  let { children } = $props();
+</script>
+
+<CopilotKitProvider
+  runtimeUrl="/api/copilotkit"
+  renderCustomMessages={[
+    {
+      render: ({ message, position }) => `${position}:${message.id}`,
+    },
+  ]}
+  renderActivityMessages={[
+    {
+      activityType: "weather-card",
+      content: z.object({ city: z.string() }),
+      render: ({ content }) => `${content.city} weather card`,
+    },
+  ]}
+>
+  {@render children()}
+</CopilotKitProvider>
+```
+
 ## Attach files
 
 Pass `attachments` to `CopilotChat` to wire `createAttachments` into the
@@ -266,11 +349,13 @@ are reactive getters, so updates to `agentId`, `enabled`, `limit`, or
 | `useFrontendTool` | `registerFrontendTool` |
 | `useAgentContext` | `connectAgentContext` |
 | `useRenderToolCall` (`useRenderTool` in V1) | `registerRenderToolCall` |
+| `useComponent` | `registerComponent` |
 | `useHumanInTheLoop` | `registerHumanInTheLoop` |
 | `useInterrupt` | `createInterrupt` |
 | `useThreads` | `createThreads` |
 | `useAttachments` | `createAttachments` |
-| `useSuggestions` | `createSuggestions` (observation only; no suggestion-configuration registration — React's `useConfigureSuggestions` has no Svelte equivalent) |
+| `useSuggestions` | `createSuggestions` (observation; pair with `configureSuggestions` to register generation) |
+| `useConfigureSuggestions` | `configureSuggestions` |
 | `useCapabilities` | `createCapabilities` |
 | `useKatexStyles` | `loadKatexStyles` |
 | Provider accessor (`useCopilotKit`) | `useCopilotKit` |
@@ -283,7 +368,6 @@ React V1 names such as `useCopilotAction`, `useCopilotReadable`, and
 
 This release does not claim full React parity. Still missing:
 
-- Suggestion-generation configuration (Svelte observes suggestions only).
 - Prebuilt thread drawer, modal chat surface, and audio input.
 - Provider-level `humanInTheLoop` prop (throws; use `registerHumanInTheLoop`).
 - A2UI and Open Generative UI renderers/sandbox helpers.
@@ -298,9 +382,8 @@ tabs with attachments enabled.
 
 ## Next compatibility milestones
 
-1. Suggestion-generation configuration registration.
-2. Prebuilt thread drawer, modal surface, and audio input.
-3. A2UI/Open Generative UI renderers and sandbox helpers.
-4. CoAgent state renderers.
-5. Memories/learning bindings and Inspector tooling.
-6. Public API reference pages and lifecycle examples for every exported factory.
+1. Prebuilt thread drawer, modal surface, and audio input.
+2. A2UI/Open Generative UI renderers and sandbox helpers.
+3. CoAgent state renderers.
+4. Memories/learning bindings and Inspector tooling.
+5. Public API reference pages and lifecycle examples for every exported factory.

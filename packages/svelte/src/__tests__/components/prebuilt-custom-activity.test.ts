@@ -18,13 +18,13 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("prebuilt chat custom/activity rendering", () => {
-  // Custom/activity renderer output renders as bare text nodes sharing one
-  // parent, so assert on textContent instead of getByText exact matching.
-  function renderedText(view: { container: HTMLElement }, text: string) {
-    return view.container.textContent?.includes(text) ?? false;
-  }
+// Custom/activity renderer output renders as bare text nodes sharing one
+// parent, so assert on textContent instead of getByText exact matching.
+function renderedText(view: { container: HTMLElement }, text: string) {
+  return view.container.textContent?.includes(text) ?? false;
+}
 
+describe("prebuilt chat custom/activity rendering", () => {
   it("wraps messages with custom before/after renderers", async () => {
     const view = render(Harness);
 

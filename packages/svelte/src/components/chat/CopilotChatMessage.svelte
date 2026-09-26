@@ -86,8 +86,7 @@
     const messageIndex = rawIndex >= 0 ? rawIndex : 0;
     let messageIndexInRun = 0;
     let numberOfMessagesInRun = 1;
-    if (resolvedRunId && threadId && copilotkit) {
-      const core = copilotkit;
+    if (resolvedRunId && threadId) {
       const idsInRun = agentMessages
         .filter(
           (entry) =>
@@ -104,26 +103,26 @@
       messageIndexInRun,
       numberOfMessagesInRun,
       stateSnapshot:
-        resolvedRunId && threadId && copilotkit
-          ? copilotkit.getStateByRun(chatAgentId, threadId, resolvedRunId)
+        resolvedRunId && threadId
+          ? core.getStateByRun(chatAgentId, threadId, resolvedRunId)
           : undefined,
     };
   }
 
   function renderCustom(position: "before" | "after"): unknown {
-    const context = resolveCustomContext();
-    if (!context) return null;
+    const customContext = resolveCustomContext();
+    if (!customContext) return null;
     for (const renderer of scopedCustomRenderers) {
       if (!renderer.render) continue;
       const output = renderer.render({
         message,
         position,
-        runId: context.runId,
-        messageIndex: context.messageIndex,
-        messageIndexInRun: context.messageIndexInRun,
-        numberOfMessagesInRun: context.numberOfMessagesInRun,
+        runId: customContext.runId,
+        messageIndex: customContext.messageIndex,
+        messageIndexInRun: customContext.messageIndexInRun,
+        numberOfMessagesInRun: customContext.numberOfMessagesInRun,
         agentId: chatAgentId,
-        stateSnapshot: context.stateSnapshot,
+        stateSnapshot: customContext.stateSnapshot,
       });
       if (output !== null && output !== undefined && output !== false) {
         return output;
