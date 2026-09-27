@@ -1,5 +1,4 @@
 import { getContext } from "svelte";
-import { SvelteSet } from "svelte/reactivity";
 import type {
   DynamicSuggestionsConfig,
   StaticSuggestionsConfig,
@@ -108,7 +107,10 @@ function requestReload(
     core.reloadSuggestions(targetAgentId);
     return;
   }
-  const seen = new SvelteSet<string>();
+  // Local scratch set, intentionally non-reactive: it lives for one reload
+  // fan-out only and is never read by the template.
+  // eslint-disable-next-line svelte/prefer-svelte-reactivity
+  const seen = new Set<string>();
   for (const entry of Object.values(core.agents ?? {})) {
     const agentId = entry.agentId;
     if (!agentId) {

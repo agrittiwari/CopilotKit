@@ -29,12 +29,17 @@
     isRunning = false,
     renderCustomMessages = [] as SvelteCustomMessageRenderer[],
     renderActivityMessages = [] as SvelteActivityMessageRenderer<unknown>[],
+    // Bumped by the message view when the chat agent emits state/run updates
+    // so stateSnapshot-dependent custom renderers refresh. One subscription
+    // lives in the view (not per message); this prop is just its version.
+    stateVersion = 0,
   }: {
     message: Message;
     messages?: Message[];
     isRunning?: boolean;
     renderCustomMessages?: SvelteCustomMessageRenderer[];
     renderActivityMessages?: SvelteActivityMessageRenderer<unknown>[];
+    stateVersion?: number;
   } = $props();
 
   const context = getContext<CopilotKitContextValue | null>(COPILOT_KIT_KEY);
@@ -111,6 +116,9 @@
   }
 
   function renderCustom(position: "before" | "after"): unknown {
+    // Track the view-level state version so custom renderers re-resolve
+    // stateSnapshot when the agent emits state/run updates.
+    void stateVersion;
     const customContext = resolveCustomContext();
     if (!customContext) return null;
     for (const renderer of scopedCustomRenderers) {

@@ -7,6 +7,7 @@
     COPILOT_KIT_KEY,
     type CopilotKitContextValue,
   } from "../../providers/context";
+  import { getChatConfig } from "./chat-config-context.svelte";
   import type {
     SvelteActivityMessageRenderer,
     SvelteCustomMessageRenderer,
@@ -26,11 +27,16 @@
   // new messages never adds core subscriptions.
   const context = getContext<CopilotKitContextValue | null>(COPILOT_KIT_KEY);
   const copilotkit = context?.copilotkit;
+  const chatConfig = getChatConfig();
 
   let renderCustomMessages = $state<SvelteCustomMessageRenderer[]>([]);
   let renderActivityMessages = $state<
     SvelteActivityMessageRenderer<unknown>[]
   >([]);
+  // Bumped when the chat agent emits state/run updates so custom renderers
+  // re-resolve stateSnapshot. One view-level agent subscription (not per
+  // message), switched reactively as the chat agent changes.
+  let stateVersion = $state(0);
 
   $effect(() => {
     if (!copilotkit || typeof copilotkit.subscribe !== "function") return;
@@ -51,6 +57,25 @@
       subCustom.unsubscribe();
       subActivity.unsubscribe();
     };
+  });
+
+  // View-level agent subscription so stateSnapshot-dependent custom renderers
+  // refresh on state changes. Tracks the reactive chat agent id, so switching
+  // chats re-subscribes exactly once; per-message components never subscribe.
+  $effect(() => {
+    const agentId = chatConfig?.agentId;
+    if (!copilotkit || !agentId) return;
+    const agent =
+      typeof copilotkit.getAgent === "function"
+        ? copilotkit.getAgent(agentId)
+        : undefined;
+    if (!agent || typeof agent.subscribe !== "function") return;
+    const subscription = agent.subscribe({
+      onStateChanged: () => {
+        stateVersion += 1;
+      },
+    });
+    return () => subscription.unsubscribe();
   });
 
   let container: HTMLDivElement | undefined = $state();
@@ -74,6 +99,7 @@
       {isRunning}
       {renderCustomMessages}
       {renderActivityMessages}
+      stateVersion={stateVersion}
     />
   {/each}
 </div>

@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/svelte";
+import { tick } from "svelte";
 import { describe, expect, it, vi } from "vitest";
 import type { CopilotKitCoreSvelte } from "../../lib/svelte-core";
 import type { CopilotKitContextValue } from "../../providers/context";
@@ -147,6 +148,37 @@ describe("configureSuggestions", () => {
     expect(core.reloadSuggestions).toHaveBeenCalledWith("agent-a");
   });
 
+  it("re-registers and reloads when the chat agent switches", async () => {
+    let nextId = 0;
+    const core = mockCore({
+      addSuggestionsConfig: vi.fn(() => `config-${++nextId}`),
+    });
+    const view = render(Harness, {
+      props: {
+        context: mockContext(core),
+        config: STATIC,
+        chatAgentId: "agent-a",
+      },
+    });
+
+    await waitFor(() => {
+      expect(core.addSuggestionsConfig).toHaveBeenCalledTimes(1);
+    });
+    expect(core.reloadSuggestions).toHaveBeenCalledWith("agent-a");
+
+    await view.rerender({
+      context: mockContext(core),
+      config: STATIC,
+      chatAgentId: "agent-b",
+    });
+
+    await waitFor(() => {
+      expect(core.addSuggestionsConfig).toHaveBeenCalledTimes(2);
+    });
+    expect(core.removeSuggestionsConfig).toHaveBeenCalledWith("config-1");
+    expect(core.reloadSuggestions).toHaveBeenCalledWith("agent-b");
+  });
+
   it("registers nothing for disabled or null configs", async () => {
     const disabledCore = mockCore();
     render(Harness, {
@@ -156,7 +188,9 @@ describe("configureSuggestions", () => {
         chatAgentId: "agent-a",
       },
     });
-    await Promise.resolve();
+    // Flush Svelte effects deterministically; a bare Promise.resolve does not
+    // guarantee $effect execution.
+    await tick();
     expect(disabledCore.addSuggestionsConfig).not.toHaveBeenCalled();
     expect(disabledCore.reloadSuggestions).not.toHaveBeenCalled();
 
@@ -168,7 +202,7 @@ describe("configureSuggestions", () => {
         chatAgentId: "agent-a",
       },
     });
-    await Promise.resolve();
+    await tick();
     expect(nullCore.addSuggestionsConfig).not.toHaveBeenCalled();
     expect(nullCore.reloadSuggestions).not.toHaveBeenCalled();
   });

@@ -2,10 +2,10 @@ import { setContext, getContext } from "svelte";
 import { COPILOT_CHAT_CONFIG_KEY } from "../../providers/context";
 
 export class ChatConfig {
-  agentId: string;
-  threadId: string | undefined;
-  hasExplicitThreadId: boolean;
-  labels: Record<string, string>;
+  agentId = $state("");
+  threadId = $state<string | undefined>(undefined);
+  hasExplicitThreadId = $state(false);
+  labels = $state<Record<string, string>>({});
 
   constructor(
     agentId: string,

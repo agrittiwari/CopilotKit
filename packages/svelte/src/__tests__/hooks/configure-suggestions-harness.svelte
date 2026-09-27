@@ -23,10 +23,20 @@
 
   // svelte-ignore state_referenced_locally
   setContext(COPILOT_KIT_KEY, context);
+  // Mirror CopilotChat: one shared ChatConfig whose reactive agentId is
+  // mutated when the chat agent prop changes, so configureSuggestions
+  // re-registers against the new agent instead of staying pinned.
   // svelte-ignore state_referenced_locally
-  if (chatAgentId !== undefined) {
-    setContext(COPILOT_CHAT_CONFIG_KEY, new ChatConfig(chatAgentId));
+  const chatConfig = chatAgentId !== undefined ? new ChatConfig(chatAgentId) : undefined;
+  if (chatConfig) {
+    setContext(COPILOT_CHAT_CONFIG_KEY, chatConfig);
   }
+
+  $effect(() => {
+    if (chatConfig && chatAgentId !== undefined) {
+      chatConfig.agentId = chatAgentId;
+    }
+  });
 
   // Getter thunk keeps the config prop reactive inside the callee's $effect.
   configureSuggestions(() => config);

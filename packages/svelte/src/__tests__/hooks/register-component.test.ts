@@ -67,10 +67,15 @@ describe("registerComponent", () => {
     );
   });
 
-  it("forwards tool-call parameters to the component render on destroy-safe cleanup", () => {
+  it("adapts core renderer args to component parameters (public render contract covered in components/register-component.test.ts)", () => {
     const context = createMockContext();
     const view = render(Harness, { props: { context } });
 
+    // The registered core renderer receives the internal RenderToolProps shape
+    // ({ args, ... }); the adapter maps args -> parameters for the public
+    // component render. The end-to-end painted output is asserted through the
+    // real CopilotChatMessageView path in
+    // components/register-component.test.ts.
     const addRenderer = context.copilotkit.addHookRenderToolCall as ReturnType<
       typeof vi.fn
     >;
