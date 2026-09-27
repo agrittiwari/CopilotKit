@@ -98,7 +98,7 @@ chat uses the runtime's `default` agent.
 | Tool-call rendering | Supported in prebuilt chat | Renderers from `registerRenderToolCall` (including the `"*"` wildcard fallback) mount inside `CopilotChat`; a `toolCall` slot override still wins when provided. Unmatched calls fall back to generic status. Use `registerComponent` to register a tool and its renderer in one call. |
 | Human approval | Supported with custom UI | `registerHumanInTheLoop` mounts its renderer in the prebuilt chat and matches concurrent calls by tool-call ID. The provider-level `humanInTheLoop` prop is unsupported and throws; use the registration instead. |
 | Custom message renderers | Supported in prebuilt chat | Pass `renderCustomMessages` to the provider; matching `before`/`after` renderers mount around every message with run, message-index, and state-snapshot context. Unmatched messages keep their generic rendering. |
-| Activity message renderers | Supported in prebuilt chat | Pass `renderActivityMessages` to the provider; renderers match by `activityType` (plus a `"*"` wildcard) with optional `agentId` scoping and schema-validated content. Unmatched activity falls back to a generic label. |
+| Activity message renderers | Supported in prebuilt chat | Pass `renderActivityMessages` to the provider; renderers match by `activityType` (plus a `"*"` wildcard) with optional `agentId` scoping and Standard Schema-validated content. Unmatched activity falls back to a generic label. |
 | A2UI and Open Generative UI | Not yet supported | Built-in catalogs, renderers, and sandbox helpers are planned. |
 | CoAgent/LangGraph state renderers | Not yet supported | Use the lower-level agent binding for state today. |
 | Memories and learning APIs | Not yet supported | No Svelte-specific bindings are included in this release. |
@@ -250,8 +250,13 @@ default agent) is used.
 Pass renderer lists to the provider; they mount inside `CopilotChat` with the
 same matching semantics as React V2. Custom renderers wrap every message at
 `before`/`after` positions and receive run, message-index, and state-snapshot
-context. Activity renderers match by `activityType` (with `"*"` wildcard and
-optional `agentId` scoping) and receive schema-validated `content`.
+context (state updates re-render through a single view-level agent
+subscription). Activity renderers match by `activityType` (with `"*"` wildcard
+and optional `agentId` scoping) and receive Standard Schema-validated
+`content` (any Standard Schema works — Zod is just the example below).
+Renderer output is plain text (`string`/`number`) or a snippet function;
+anything else falls through to the next renderer, then to the generic
+fallback.
 
 ```svelte
 <script lang="ts">
