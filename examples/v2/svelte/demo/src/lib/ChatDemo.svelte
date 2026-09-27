@@ -4,18 +4,20 @@
     CopilotChat,
     CopilotSidebar,
     CopilotPopup,
+    configureSuggestions,
     connectAgentContext,
+    registerComponent,
     registerFrontendTool,
   } from "@copilotkit/svelte";
 
   type Tab = "chat" | "sidebar" | "popup";
   let activeTab = $state<Tab>("chat");
 
-  $effect(() => {
-    connectAgentContext({
-      description: "The user is testing the Svelte CopilotKit package on the chat demo page.",
-      value: activeTab,
-    });
+  connectAgentContext({
+    description: "The user is testing the Svelte CopilotKit package on the chat demo page.",
+    get value() {
+      return activeTab;
+    },
   });
 
   registerFrontendTool({
@@ -29,6 +31,31 @@
       alert(`[${type.toUpperCase()}] ${message}`);
       return `Toast shown: ${message}`;
     },
+  });
+
+  configureSuggestions({
+    suggestions: [
+      {
+        title: "Show a weather card",
+        message: "Show me a weather card for San Francisco",
+      },
+      {
+        title: "Test a notification",
+        message: "Show an info notification that says the Svelte SDK is working",
+      },
+    ],
+  });
+
+  registerComponent({
+    name: "showWeatherCard",
+    description: "Display a compact weather card for a city",
+    parameters: z.object({
+      city: z.string().describe("The city to display"),
+      temperature: z.number().describe("The current temperature in Celsius"),
+      conditions: z.string().describe("A short weather description"),
+    }),
+    render: ({ city, temperature, conditions }) =>
+      `☀️ ${city}: ${temperature}°C · ${conditions}`,
   });
 
   const tabs: { id: Tab; label: string }[] = [
