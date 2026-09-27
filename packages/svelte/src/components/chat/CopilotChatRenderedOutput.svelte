@@ -3,7 +3,9 @@
 
   // Renders one renderer output value using the same convention as the
   // tool-call view: plain text passes through, snippet functions render,
-  // anything else renders nothing.
+  // anything else renders nothing. Callers filter with isRenderableOutput
+  // (see rendered-output.ts) so non-renderable output falls through to the
+  // next renderer or the generic fallback before it ever reaches this view.
   let { value }: { value: unknown } = $props();
 
   function asSnippet(renderFn: unknown): Snippet<[]> {

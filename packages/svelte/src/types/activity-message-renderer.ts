@@ -1,6 +1,6 @@
 import type { ActivityMessage } from "@ag-ui/core";
 import type { AbstractAgent } from "@ag-ui/client";
-import type { z } from "zod";
+import type { StandardSchemaV1 } from "@copilotkit/shared";
 
 export interface SvelteActivityMessageRendererProps<TActivityContent> {
   activityType: string;
@@ -16,6 +16,6 @@ export type SvelteActivityMessageRendererRenderFn<TActivityContent> = (
 export interface SvelteActivityMessageRenderer<TActivityContent> {
   activityType: string;
   agentId?: string;
-  content: z.ZodSchema<TActivityContent>;
+  content: StandardSchemaV1<unknown, TActivityContent>;
   render: SvelteActivityMessageRendererRenderFn<TActivityContent>;
 }

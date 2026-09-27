@@ -17,6 +17,7 @@
     type CopilotKitContextValue,
   } from "../../providers/context";
   import { getChatConfig } from "./chat-config-context.svelte";
+  import { isRenderableOutput } from "./rendered-output";
   import type {
     SvelteActivityMessageRenderer,
     SvelteCustomMessageRenderer,
@@ -124,7 +125,7 @@
         agentId: chatAgentId,
         stateSnapshot: customContext.stateSnapshot,
       });
-      if (output !== null && output !== undefined && output !== false) {
+      if (isRenderableOutput(output)) {
         return output;
       }
     }
@@ -152,23 +153,35 @@
     if (!copilotkit) return null;
     const renderer = findActivityRenderer(activity.activityType);
     if (!renderer) return null;
-    const parsed = renderer.content.safeParse(activity.content);
-    if (!parsed.success) {
+    const parseResult = renderer.content["~standard"].validate(
+      activity.content,
+    );
+    if (parseResult instanceof Promise) {
       console.warn(
-        `Failed to parse content for activity message '${activity.activityType}':`,
-        parsed.error.issues,
+        `Async content validation is not supported for activity message '${activity.activityType}'`,
       );
       return null;
     }
-    return renderer.render({
+    if (parseResult.issues) {
+      console.warn(
+        `Failed to parse content for activity message '${activity.activityType}':`,
+        parseResult.issues,
+      );
+      return null;
+    }
+    const output = renderer.render({
       activityType: activity.activityType,
-      content: parsed.data,
+      content: parseResult.value,
       message: activity,
       agent:
         typeof copilotkit.getAgent === "function"
           ? copilotkit.getAgent(chatAgentId)
           : undefined,
     });
+    // Nullish/invalid renderer output falls through to the generic fallback
+    // instead of producing blank output.
+    if (!isRenderableOutput(output)) return null;
+    return output;
   }
 
   function isAssistant(msg: Message): msg is AssistantMessage {
