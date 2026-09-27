@@ -1,17 +1,42 @@
 <script lang="ts">
-  import { CopilotKitProvider } from "@copilotkit/svelte";
+  import { z } from "zod";
+  import {
+    CopilotKitProvider,
+    type SvelteActivityMessageRenderer,
+    type SvelteCustomMessageRenderer,
+  } from "@copilotkit/svelte";
   import ChatDemo from "$lib/ChatDemo.svelte";
+
+  const renderCustomMessages: SvelteCustomMessageRenderer[] = [
+    {
+      render: ({ message, position }) =>
+        message.role === "assistant" && position === "after"
+          ? "Rendered with the Svelte custom-message pipeline"
+          : null,
+    },
+  ];
+
+  const renderActivityMessages: SvelteActivityMessageRenderer<unknown>[] = [
+    {
+      activityType: "status-update",
+      content: z.object({ message: z.string() }),
+      render: ({ content }) =>
+        `Activity: ${(content as { message: string }).message}`,
+    },
+  ];
 </script>
 
 <CopilotKitProvider
   runtimeUrl="/api/copilotkit"
   showDevConsole={true}
+  {renderCustomMessages}
+  {renderActivityMessages}
 >
   <div class="app">
     <header class="header">
       <div>
         <h1>CopilotKit Svelte 5</h1>
-        <p>AI chat with agent calling, tool rendering, reasoning, and suggestions</p>
+        <p>AI chat with configured suggestions, components, custom messages, activities, and attachments</p>
       </div>
     </header>
 

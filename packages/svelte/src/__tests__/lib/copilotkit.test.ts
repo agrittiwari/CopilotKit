@@ -223,11 +223,16 @@ describe("CopilotKitCoreSvelte", () => {
     expect(core.propRenderToolCalls).toHaveLength(0);
   });
 
-  it("sets activity message renderers", () => {
+  it("sets activity message renderers and notifies subscribers", () => {
     const core = new CopilotKitCoreSvelte({});
+    const subSpy = vi.fn();
+    core.subscribe({
+      onRenderActivityMessagesChanged: subSpy,
+    } as any);
     const r = { activityType: "custom", content: z.any(), render: () => {} };
     core.setRenderActivityMessages([r]);
     expect(core.renderActivityMessages).toHaveLength(1);
+    expect(subSpy).toHaveBeenCalledTimes(1);
   });
 
   it("sets custom message renderers and notifies subscribers", () => {

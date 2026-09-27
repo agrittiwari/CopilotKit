@@ -26,6 +26,10 @@ export interface CopilotKitCoreSvelteSubscriber extends CopilotKitCoreSubscriber
     copilotkit: CopilotKitCoreSvelte;
     renderToolCalls: SvelteToolCallRenderer<unknown>[];
   }) => void | Promise<void>;
+  onRenderActivityMessagesChanged?: (event: {
+    copilotkit: CopilotKitCoreSvelte;
+    renderActivityMessages: SvelteActivityMessageRenderer<unknown>[];
+  }) => void | Promise<void>;
   onRenderCustomMessagesChanged?: (event: {
     copilotkit: CopilotKitCoreSvelte;
     renderCustomMessages: SvelteCustomMessageRenderer[];
@@ -99,6 +103,13 @@ export class CopilotKitCoreSvelte extends CopilotKitCore {
     renderers: SvelteActivityMessageRenderer<unknown>[],
   ): void {
     this._renderActivityMessages = [...renderers];
+    void this.notifySubscribers((subscriber) => {
+      const svelteSubscriber = subscriber as CopilotKitCoreSvelteSubscriber;
+      svelteSubscriber.onRenderActivityMessagesChanged?.({
+        copilotkit: this,
+        renderActivityMessages: [...this.renderActivityMessages],
+      });
+    }, "Subscriber onRenderActivityMessagesChanged error:");
   }
 
   setRenderCustomMessages(renderers: SvelteCustomMessageRenderer[]): void {

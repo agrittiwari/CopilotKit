@@ -10,6 +10,7 @@ export type {
   JsonSerializable,
 } from "./connect-agent-context.svelte";
 export { registerFrontendTool } from "./register-frontend-tool.svelte";
+export { registerComponent } from "./register-component.svelte";
 export { registerRenderToolCall } from "./register-render-tool-call.svelte";
 export type {
   RenderToolProps,
@@ -23,6 +24,11 @@ export type {
   CreateSuggestionsOptions,
   CreateSuggestionsResult,
 } from "./create-suggestions.svelte";
+export { configureSuggestions } from "./configure-suggestions.svelte";
+export type {
+  ConfigureSuggestionsInput,
+  StaticConfigureSuggestionsInput,
+} from "./configure-suggestions.svelte";
 export { createInterrupt } from "./create-interrupt.svelte";
 export type {
   CreateInterruptConfig,
